@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block page_title %}
+    Excluir Solicitação
+{% endblock page_title %}
+
+{% block content %}
+    <h1>Excluir Solicitação</h1>
+
+    <p>Tem certeza que deseja excluir a solicitação <strong>{{ quotationrequests.title }}</strong>?</p>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <button type="submit" class="btn btn-danger">Excluir</button>
+        <a href="{% url "quotationrequests_list" %}" class="btn btn-primary">Cancelar</a>
+    </form>
+{% endblock content %}
+
+

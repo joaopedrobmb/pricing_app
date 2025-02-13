@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block page_title %}
+
+  Solicitação de Orçamento
+
+{% endblock page_title %}
+
+
+
+{% block content %}        
+
+<h1>Lista de Orçamentos</h1>
+<a href="{% url "quotationrequests_create" %}" class="btn btn-success">Nova Solicitação</a>
+
+{% if quotationrequests_list %}
+    <table class="table">
+        <thead>
+        <tr>
+            <th scope="col">#</th>
+            <th scope="col">Revisão</th>
+            <th scope="col">Título</th>
+            <th scope="col">Cliente</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Deadline</th>
+            <th scope="col">Criado em</th>
+            <th scope="col">Respondida em</th>
+        </tr>
+        </thead>
+        <tbody>
+            {% for quotation in quotationrequests_list %}
+                <tr>
+                    <th scope="row">{{ quotation.pk }}</th>
+                    <td>{{ quotation.review_count }}</td>
+                    <td>{{ quotation.title }}</td>
+                    <td>{{ quotation.customer }}</td>
+                    <td>{{ quotation.state }}</td>
+                    <td>{{ quotation.deadline|date:"d/m/Y H:i" }}</td>
+                    <td>{{ quotation.created_at|date:"d/m/Y H:i" }}</td>
+                    <td>{{ quotation.responded_on|default:"-"|date:"d/m/Y H:i" }}</td>
+                    <td>
+                      <a href="{% url 'quotationrequests_update' pk=quotation.pk%}" class="btn btn-secondary btn-sm">Editar</a>
+                      <a href="{% url 'quotationrequests_delete' pk=quotation.pk%}" class="btn btn-danger btn-sm">Excluir</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Não há orçamentos cadastrados.</p>
+  {% endif %}
+{% endblock content %}
+       

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+  <h1>{% if form.instance.pk %}Editar Solicitação{% else %}Criar Solicitação{% endif %}</h1>
+
+  <form method="POST">
+    {% csrf_token %}
+    <input type="hidden" id="quotation_request_id" name="quotation_request_id" value="{{ temp_id }}">
+    <p>Temp ID: {{ temp_id }}</p>
+    
+    {{ form|crispy }}
+
+    <h2>Equipamentos</h2>
+    <button type="button" class="btn btn-primary" id="add-equipment-btn">Adicionar Equipamento</button>
+
+    <table class="table mt-3" id="equipment-table">
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th>Modelo</th>
+          <th>Quantidade</th>
+          <th>Preço</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for equipment in form.instance.equipment_set.all %}
+        <tr data-equipment-id="{{ equipment.id }}">
+          <td>{{ equipment.equipment_type }}</td>
+          <td>{{ equipment.equipment_model }}</td>
+          <td>{{ equipment.quantity }}</td>
+          <td>{{ equipment.price }}</td>
+          <td>
+            <button class="btn btn-info btn-sm view-equipment">Visualizar</button>
+            <button class="btn btn-warning btn-sm edit-equipment">Editar</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <button type="submit" class="btn btn-success">Salvar</button>
+  </form>
+
+  <!-- MODAL PARA ADICIONAR/EDITAR EQUIPAMENTO -->
+  <div class="modal fade" id="equipmentModal" tabindex="-1" aria-labelledby="equipmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="equipmentModalLabel">Adicionar Equipamento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <form id="equipment-form" method="POST">
+            {% csrf_token %}
+            <input type="hidden" id="editing-equipment-id" name="editing_equipment_id">
+            {{ form.management_form }}
+            <div id="equipment-formset">
+              {% for form in formset %}
+                <div class="equipment-form">{{ form.as_p }}</div>
+              {% endfor %}
+            </div>
+            <button type="button" id="save-equipment-btn" class="btn btn-success">Salvar Equipamento</button>
+            <button type="button" id="delete-equipment-btn" class="btn btn-danger">Remover Equipamento</button>
+          </form>          
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PARA VISUALIZAR EQUIPAMENTO -->
+  <div class="modal fade" id="viewEquipmentModal" tabindex="-1" aria-labelledby="viewEquipmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="viewEquipmentModalLabel">Visualizar Equipamento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <div id="view-equipment-details"></div>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    let addButton = document.getElementById("add-equipment-btn");
+    let equipmentModal = new bootstrap.Modal(document.getElementById("equipmentModal"));
+    let viewEquipmentModal = new bootstrap.Modal(document.getElementById("viewEquipmentModal"));
+    let saveButton = document.getElementById("save-equipment-btn");
+    let deleteButton = document.getElementById("delete-equipment-btn");
+    let tableBody = document.querySelector("#equipment-table tbody");
+    let editingEquipmentId = document.getElementById("editing-equipment-id");
+
+    addButton.addEventListener("click", function() {
+      editingEquipmentId.value = "";
+      equipmentModal.show();
+    });
+
+    function deleteEquipment(event) {
+      let row = document.querySelector(`[data-equipment-id='${editingEquipmentId.value}']`);
+      if (row) row.remove();
+      equipmentModal.hide();
+    }
+
+    deleteButton.removeEventListener("click", deleteEquipment);
+    deleteButton.addEventListener("click", deleteEquipment);
+
+    saveButton.addEventListener("click", function() {
+      let form = document.getElementById("equipment-form");
+      let formData = new FormData(form);
+      
+      fetch("{% url 'add_equipment' %}", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": form.querySelector("[name='csrfmiddlewaretoken']").value
+        },
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          let newRow = document.createElement("tr");
+          newRow.dataset.equipmentId = data.id;
+          newRow.innerHTML = `
+            <td>${data.equipment_type}</td>
+            <td>${data.equipment_model}</td>
+            <td>${data.quantity}</td>
+            <td>${data.price}</td>
+            <td>
+              <button class="btn btn-info btn-sm view-equipment">Visualizar</button>
+              <button class="btn btn-warning btn-sm edit-equipment">Editar</button>
+            </td>
+          `;
+          tableBody.appendChild(newRow);
+          equipmentModal.hide();
+          form.reset(); 
+        } else {
+          console.error('Erro ao salvar o equipamento!', data.error || data.errors);
+        }
+      })
+      .catch(error => {
+        console.error('Erro na requisição:', error);
+        alert("Falha ao salvar equipamento. Tente novamente.");
+      });
+    });
+  });
+</script>
+{% endblock %}
